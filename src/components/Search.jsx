@@ -1,9 +1,18 @@
 import { useContext, useState } from "react";
-import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import { db } from "../firebase";
 import { AuthContext } from "../context/AuthContext";
-import { serverTimestamp } from "firebase/firestore";
 import Pusher from 'pusher-js';
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  setDoc,
+  doc,
+  updateDoc,
+  serverTimestamp,
+  getDoc,
+} from "firebase/firestore";
 
 const Search = () => {
   const { currentUser } = useContext(AuthContext);
@@ -17,61 +26,70 @@ const Search = () => {
   });
 
   const handleSearch = async () => {
+    const q = query(
+      collection(db, "users"),
+      where("displayName", "==", username)
+    );
+
     try {
-      console.log(username)
-      const userDoc = await getDoc(doc(db, "users", username));
-      console.log(userDoc)
-      console.log("searched for " + username)
-      if (userDoc.exists()) {
-        setUser(userDoc.data());
-      } else {
-        console.log('user not found')
-        setErr(true);
-      }
+      const querySnapshot = await getDocs(q);
+      querySnapshot.forEach((doc) => {
+        setUser(doc.data());
+      });
     } catch (err) {
       setErr(true);
     }
   };
 
   const handleSelect = async () => {
-    const combinedId =
-      currentUser.uid > user.uid
+    if (currentUser && user) {
+      const combinedId = currentUser.uid > user.uid
         ? currentUser.uid + user.uid
         : user.uid + currentUser.uid;
-
-    try {
-      const chatDoc = await getDoc(doc(db, "chats", combinedId));
-
-      if (!chatDoc.exists()) {
-        await setDoc(doc(db, "chats", combinedId), { messages: [] });
-
-        await updateDoc(doc(db, "userChats", currentUser.uid), {
-          [combinedId + ".userInfo"]: {
-            uid: user.uid,
-            displayName: user.displayName,
-            photoURL: user.photoURL,
-          },
-          [combinedId + ".date"]: serverTimestamp(),
-        });
-
-        await updateDoc(doc(db, "userChats", user.uid), {
-          [combinedId + ".userInfo"]: {
-            uid: currentUser.uid,
-            displayName: currentUser.displayName,
-            photoURL: currentUser.photoURL,
-          },
-          [combinedId + ".date"]: serverTimestamp(),
-        });
-
-        // Trigger Pusher event for creating a channel
-        pusher.trigger(`chat-${combinedId}`, 'channel-created', {
-          users: [currentUser.uid, user.uid],
-        });
+    
+      try {
+        const res = await getDoc(doc(db, "chats", combinedId));
+    
+        if (!res.exists()) {
+          // Create a chat document in Firestore
+          await setDoc(doc(db, "chats", combinedId), { messages: [] });
+    
+          // Update userChats for currentUser
+          await updateDoc(doc(db, "userChats", currentUser.uid), {
+            [combinedId + ".userInfo"]: {
+              uid: user.uid,
+              displayName: user.displayName,
+              photoURL: user.photoURL,
+            },
+            [combinedId + ".date"]: serverTimestamp(),
+          });
+    
+          // Update userChats for the other user
+          await updateDoc(doc(db, "userChats", user.uid), {
+            [combinedId + ".userInfo"]: {
+              uid: currentUser.uid,
+              displayName: currentUser.displayName,
+              photoURL: currentUser.photoURL,
+            },
+            [combinedId + ".date"]: serverTimestamp(),
+          });
+    
+          // Trigger Pusher event for creating a channel
+          pusher.trigger(`chat-${combinedId}`, "channel-created", {
+            users: [currentUser.uid, user.uid],
+          });
+    
+          // Subscribe to the Pusher channel
+          const channel = pusher.subscribe(`chat-${combinedId}`);
+          channel.bind("new-message", (data) => {
+            // Handle new message received
+          });
+        }
+      } catch (err) {
+        console.error("Error handling select:", err);
       }
-    } catch (err) {
-      console.error("Error creating channel:", err);
     }
-
+    
     setUser(null);
     setUsername("");
   };

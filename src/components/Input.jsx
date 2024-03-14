@@ -12,7 +12,7 @@ import {
 import { db, storage } from "../firebase";
 import { v4 as uuid } from "uuid";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
-import Pusher from 'pusher-js';
+import pusher from './pusherjs';
 
 const Input = () => {
   const [text, setText] = useState("");
@@ -21,10 +21,7 @@ const Input = () => {
   const { currentUser } = useContext(AuthContext);
   const { data } = useContext(ChatContext);
 
-  const pusher = new Pusher('2ad13bef5022d983147b', {
-    cluster: 'ap2',
-    encrypted: true
-  });
+  
 
   const handleSend = async () => {
     if (img) {
@@ -34,7 +31,8 @@ const Input = () => {
 
       uploadTask.on(
         (error) => {
-          // TODO: Handle Error
+          console.log('upload failed')
+          console.log(error)
         },
         () => {
           getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {

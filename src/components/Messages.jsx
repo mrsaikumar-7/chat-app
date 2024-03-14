@@ -3,7 +3,7 @@ import React, { useContext, useEffect, useState } from "react";
 import { ChatContext } from "../context/ChatContext";
 import { db } from "../firebase";
 import Message from "./Message";
-import Pusher from 'pusher-js';
+import pusher from './pusherjs';
 
 const Messages = () => {
   const [messages, setMessages] = useState([]);
@@ -14,10 +14,6 @@ const Messages = () => {
       doc.exists() && setMessages(doc.data().messages);
     });
 
-    const pusher = new Pusher('2ad13bef5022d983147b', {
-      cluster: 'ap2',
-      encrypted: true
-    });
 
     const channel = pusher.subscribe(`chat-${data.chatId}`);
     channel.bind('message', (newMessage) => {

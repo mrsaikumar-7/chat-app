@@ -6,17 +6,6 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useContext } from "react";
 import { AuthContext } from "./context/AuthContext";
 
-// import Pusher from 'pusher-js'
-
-// const pusher = new Pusher({
-//   appId: "1770587",
-//   key: "2ad13bef5022d983147b",
-//   secret: "49ae4a0266132250d14a",
-//   cluster: "ap2",
-//   useTLS: true
-// });
-
-
 
 
 function App() {
